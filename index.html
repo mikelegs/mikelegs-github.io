@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>trabajo de comunicacion y culturas del consumo</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 10px;
+            font-family: Arial, sans-serif;
+            max-width: 100vw;
+            overflow-x: hidden;
+        }
+        .main-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        @media (min-width: 768px) {
+            .main-container {
+                flex-direction: row;
+                justify-content: center;
+                gap: 20px;
+            }
+        }
+        .game-container {
+            margin: 10px;
+        }
+        .quiz-container {
+            margin: 10px;
+            width: 300px;
+            padding: 15px;
+            background-color: #159dec;
+            border-radius: 10px;
+        }
+        canvas {
+            border: 2px solid #523d04;
+            max-width: 100%;
+        }
+        #score, #gameOver {
+            text-align: center;
+            font-size: 24px;
+            margin: 10px 0;
+        }
+        #gameOver {
+            display: none;
+            color: rgb(208, 243, 51);
+        }
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            background-color: #a01e1e;
+            color: rgb(255, 255, 255);
+            border: none;
+            border-radius: 5px;
+            margin: 5px;
+            touch-action: manipulation;
+        }
+        .question-box {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: rgb(255, 255, 255);
+            border-radius: 5px;
+            min-height: 100px;
+        }
+        select {
+            padding: 5px;
+            font-size: 16px;
+            margin-bottom: 10px;
+            width: 100%;
+        }
+        .controls {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 5px;
+            width: 200px;
+            margin: 10px auto;
+        }
+        .control-btn {
+            aspect-ratio: 1;
+            padding: 15px;
+            font-size: 24px;
+            background-color: #4c00ff;
+            border: none;
+            border-radius: 50%;
+            touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
+            user-select: none;
+        }
+        .control-btn:active {
+            background-color: rgba(0, 0, 0, 0.3);
+        }
+        .up { grid-column: 2; }
+        .left { grid-column: 1; grid-row: 2; }
+        .right { grid-column: 3; grid-row: 2; }
+        .down { grid-column: 2; grid-row: 3; }
+    </style>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="main-container">
+        <div class="game-container">
+            <div id="score">Puntuación: 0</div>
+            <div id="gameOver">¡Juego Terminado!</div>
+            <button id="restartButton" style="display: none;" onclick="restartGame()">Jugar de nuevo</button>
+            <canvas id="game" width="400" height="400"></canvas>
+            <div class="controls">
+                <button class="control-btn up" data-direction="ArrowUp">↑</button>
+                <button class="control-btn left" data-direction="ArrowLeft">←</button>
+                <button class="control-btn right" data-direction="ArrowRight">→</button>
+                <button class="control-btn down" data-direction="ArrowDown">↓</button>
+            </div>
+        </div>
+
+        <div class="quiz-container">
+            <h3>Preguntas Educativas</h3>
+            <select id="categorySelect" onchange="changeCategory()">
+                <option value="moda">Moda</option>
+                <option value="estereotipo">Estereotipo</option>
+                <option value="comunicacion">Comunicación</option>
+                <option value="cultura">Cultura</option>
+                <option value="consumo">Consumo</option>
+            </select>
+            <div class="question-box" id="questionBox">
+                Selecciona una categoría y come una manzana para ver la pregunta...
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const questions = {
+            moda: [
+                {q: "¿Qué es el 'fast fashion'?", a: "Sistema de producción masiva de ropa a bajo costo y rápida renovación"},
+                {q: "¿Qué es la sostenibilidad en la moda?", a: "Diseño y producción que minimiza el impacto ambiental"},
+                {q: "¿Qué son las tendencias cíclicas?", a: "Estilos que vuelven a estar de moda periódicamente"},
+                {q: "¿Qué es el 'slow fashion'?", a: "Movimiento que promueve la moda consciente y duradera"},
+                {q: "¿Qué es el 'upcycling' en moda?", a: "Transformar prendas usadas en nuevas piezas de mayor valor"}
+            ],
+            estereotipo: [
+                {q: "¿Qué es un estereotipo de género?", a: "Creencias simplificadas sobre características atribuidas a hombres o mujeres"},
+                {q: "¿Cómo afectan los estereotipos en la educación?", a: "Pueden limitar las aspiraciones y oportunidades académicas"},
+                {q: "¿Qué es el prejuicio?", a: "Juicio u opinión preconcebida sin fundamento"},
+                {q: "¿Qué son los estereotipos culturales?", a: "Generalizaciones sobre grupos culturales específicos"},
+                {q: "¿Cómo combatir los estereotipos?", a: "Educación, conciencia y exposición a la diversidad"}
+            ],
+            comunicacion: [
+                {q: "¿Qué es la comunicación no verbal?", a: "Transmisión de mensajes sin usar palabras"},
+                {q: "¿Qué es la escucha activa?", a: "Prestar atención completa y consciente al interlocutor"},
+                {q: "¿Qué es la retroalimentación?", a: "Respuesta del receptor al mensaje recibido"},
+                {q: "¿Qué son las barreras comunicativas?", a: "Obstáculos que dificultan la comunicación efectiva"},
+                {q: "¿Qué es la comunicación asertiva?", a: "Expresar opiniones y sentimientos de manera clara y respetuosa"}
+            ],
+            cultura: [
+                {q: "¿Qué es el patrimonio cultural?", a: "Herencia cultural de una comunidad"},
+                {q: "¿Qué es la diversidad cultural?", a: "Variedad de expresiones culturales en una sociedad"},
+                {q: "¿Qué es la aculturación?", a: "Proceso de adaptación a una cultura diferente"},
+                {q: "¿Qué son las tradiciones?", a: "Costumbres transmitidas de generación en generación"},
+                {q: "¿Qué es la identidad cultural?", a: "Conjunto de valores y tradiciones que definen a un grupo"}
+            ],
+            consumo: [
+                {q: "¿Qué es el consumo responsable?", a: "Comprar considerando el impacto social y ambiental"},
+                {q: "¿Qué es el consumismo?", a: "Tendencia al consumo excesivo e innecesario"},
+                {q: "¿Qué es la obsolescencia programada?", a: "Diseño de productos para que duren un tiempo limitado"},
+                {q: "¿Qué es el comercio justo?", a: "Sistema comercial que garantiza condiciones justas para productores"},
+                {q: "¿Qué es la economía circular?", a: "Modelo económico basado en reutilización y reciclaje"}
+            ]
+        };
+
+        let currentQuestionIndex = 0;
+        let showingQuestion = true;
+        let currentCategory = 'moda';
+
+        function resizeCanvas() {
+            const canvas = document.getElementById('game');
+            const container = canvas.parentElement;
+            const size = Math.min(container.clientWidth - 20, 400);
+            canvas.style.width = size + 'px';
+            canvas.style.height = size + 'px';
+        }
+
+        window.addEventListener('load', resizeCanvas);
+        window.addEventListener('resize', resizeCanvas);
+
+        function changeCategory() {
+            currentCategory = document.getElementById('categorySelect').value;
+            currentQuestionIndex = 0;
+            showingQuestion = true;
+            updateQuestionBox();
+        }
+
+        function updateQuestionBox() {
+            const questionBox = document.getElementById('questionBox');
+            const currentQ = questions[currentCategory][currentQuestionIndex];
+            questionBox.textContent = showingQuestion ? currentQ.q : currentQ.a;
+        }
+
+        function nextQuestion() {
+            if (showingQuestion) {
+                showingQuestion = false;
+            } else {
+                showingQuestion = true;
+                currentQuestionIndex = (currentQuestionIndex + 1) % 5;
+            }
+            updateQuestionBox();
+        }
+
+        const canvas = document.getElementById('game');
+        const ctx = canvas.getContext('2d');
+        const grid = 20;
+        let count = 0;
+        let gameRunning = true;
+        
+        let snake = {
+            x: 160,
+            y: 160,
+            dx: grid,
+            dy: 0,
+            cells: [],
+            maxCells: 4
+        };
+        
+        let apple = {
+            x: 320,
+            y: 320
+        };
+        
+        let score = 0;
+        
+        function getRandomInt(min, max) {
+            return Math.floor(Math.random() * (max - min)) + min;
+        }
+
+        function gameOver() {
+            gameRunning = false;
+            document.getElementById('gameOver').style.display = 'block';
+            document.getElementById('restartButton').style.display = 'block';
+        }
+
+        function restartGame() {
+            snake.x = 160;
+            snake.y = 160;
+            snake.cells = [];
+            snake.maxCells = 4;
+            snake.dx = grid;
+            snake.dy = 0;
+            score = 0;
+            document.getElementById('score').textContent = 'Puntuación: ' + score;
+            document.getElementById('gameOver').style.display = 'none';
+            document.getElementById('restartButton').style.display = 'none';
+            apple.x = getRandomInt(0, 20) * grid;
+            apple.y = getRandomInt(0, 20) * grid;
+            gameRunning = true;
+            currentQuestionIndex = 0;
+            showingQuestion = true;
+            updateQuestionBox();
+            requestAnimationFrame(loop);
+        }
+
+        function changeDirection(direction) {
+            if (!gameRunning) return;
+            
+            switch(direction) {
+                case 'ArrowLeft':
+                    if (snake.dx === 0) {
+                        snake.dx = -grid;
+                        snake.dy = 0;
+                    }
+                    break;
+                case 'ArrowUp':
+                    if (snake.dy === 0) {
+                        snake.dx = 0;
+                        snake.dy = -grid;
+                    }
+                    break;
+                case 'ArrowRight':
+                    if (snake.dx === 0) {
+                        snake.dx = grid;
+                        snake.dy = 0;
+                    }
+                    break;
+                case 'ArrowDown':
+                    if (snake.dy === 0) {
+                        snake.dx = 0;
+                        snake.dy = grid;
+                    }
+                    break;
+            }
+        }
+        
+        function loop() {
+            if (!gameRunning) return;
+            requestAnimationFrame(loop);
+            
+            if (++count < 4) {
+                return;
+            }
+            
+            count = 0;
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            snake.x += snake.dx;
+            snake.y += snake.dy;
+            
+            if (snake.x < 0 || snake.x >= canvas.width || 
+                snake.y < 0 || snake.y >= canvas.height) {
+                gameOver();
+                return;
+            }
+            
+            snake.cells.unshift({x: snake.x, y: snake.y});
+            
+            if (snake.cells.length > snake.maxCells) {
+                snake.cells.pop();
+            }
+            
+            ctx.fillStyle = 'red';
+            ctx.fillRect(apple.x, apple.y, grid-1, grid-1);
+            
+            ctx.fillStyle = '#573100 ';
+            snake.cells.forEach(function(cell, index) {
+                ctx.fillRect(cell.x, cell.y, grid-1, grid-1);
+                
+                if (cell.x === apple.x && cell.y === apple.y) {
+                    snake.maxCells++;
+                    score += 10;
+                    document.getElementById('score').textContent = 'Puntuación: ' + score;
+                    apple.x = getRandomInt(0, 20) * grid;
+                    apple.y = getRandomInt(0, 20) * grid;
+                    nextQuestion();
+                }
+                
+                for (let i = index + 1; i < snake.cells.length; i++) {
+                    if (cell.x === snake.cells[i].x && cell.y === snake.cells[i].y) {
+                        gameOver();
+                        return;
+                    }
+                }
+            });
+        }
+
+        // Manejadores de eventos para controles táctiles y teclado
+        document.querySelectorAll('.control-btn').forEach(button => {
+            ['touchstart', 'mousedown'].forEach(eventType => {
+                button.addEventListener(eventType, function(e) {
+                    e.preventDefault();
+                    if (!gameRunning) return;
+                    const direction = this.getAttribute('data-direction');
+                    changeDirection(direction);
+                });
+            });
+            
+            button.addEventListener('touchend', function(e) {
+                e.preventDefault();
+            });
+        });
+
+        document.addEventListener('keydown', function(e) {
+            if (!gameRunning) return;
+            if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
+                e.preventDefault();
+                changeDirection(e.key);
+            }
+        });
+
+        // Iniciar el juego
+        requestAnimationFrame(loop);
+    </script>
+</body>
+</html>
